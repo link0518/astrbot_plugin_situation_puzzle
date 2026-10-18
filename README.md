@@ -133,6 +133,7 @@ git clone https://github.com/link0518/astrbot_plugin_situation_puzzle.git
 
 默认接口 `https://api.typesafe.ai/v1/systemone`，模型 `jev-1.13.0`。
 需要在面板填 `jev_api_key`；`base_url` 与 `model` 也可自定义（自建代理时填自己的完整 URL）。
+官方接口按出口 IP 地区放行，大陆服务器会拿到 `451`，此时用 `jev_proxy` 指定海外出口。
 响应必须带 `probabilities`，缺了按**协议错误**处理 —— 这是原项目的硬约束，插件不改。
 
 ### `provider`（可选）
@@ -215,6 +216,13 @@ docs/PLAN.md            设计文档与实施记录
 
 **一直回「无法确定」？**
 `jev` 引擎检查 Key 与额度；`provider` 引擎换一个更强的模型，或在设置页跑一次校准看看命中率。
+
+**日志里出现 `451` / `not available in your region`？**
+官方接口按出口 IP 地区放行，境外主机一般正常，中国大陆的服务器会被 Cloudflare 直接拦成 451。
+这不是 Key 或模型的问题，重试无效。解决办法二选一：
+
+1. 在 `jev_proxy` 填一个海外出口代理（`http://user:pass@host:port` 或 `socks5://host:port`）；
+2. 把 `engine` 切成 `provider`，用 AstrBot 已配置的大模型判题。
 
 **题库为什么是 350 题？**
 与上游 `main` 分支保持同步。上游 `dev` 分支另有 446 题的实验批次，但该分支没有逐题出处表，

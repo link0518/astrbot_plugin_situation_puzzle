@@ -747,7 +747,7 @@ class SituationPuzzlePlugin(Star):
             "error", f"判题失败：{error.error_class.value}", detail=str(error)
         )
         message = f"[海龟汤] 判题失败（{error.error_class.value}）：{error}"
-        if error.error_class is ErrorClass.CONFIG:
+        if error.error_class in (ErrorClass.CONFIG, ErrorClass.REGION):
             logger.error(message)
         else:
             logger.warning(message)
@@ -758,6 +758,7 @@ class SituationPuzzlePlugin(Star):
         messages = {
             "auth": "主持人的判题服务没配好（鉴权失败），请管理员到插件面板检查 Key。",
             "config": "判题请求被拒绝了，多半是接口地址或模型名填错，请管理员在面板核对。",
+            "region": "判题服务在服务器所在地区不可用（地区限制），请管理员配置代理或改用其他引擎。",
             "rate_limited": "主持人被限流了，喘口气再问一次。",
             "timeout": "这题我想太久了，换个问法试试？",
             "protocol": "主持人走神了，刚才那句没听明白，再问一次。",

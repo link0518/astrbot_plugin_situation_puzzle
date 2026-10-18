@@ -135,3 +135,63 @@ def test_missing_probabilities_is_protocol_error(monkeypatch):
     with pytest.raises(JudgeError) as caught:
         ask(engine)
     assert caught.value.error_class is ErrorClass.PROTOCOL
+
+
+def test_region_block_is_region_error(monkeypatch):
+    """海外接口按出口 IP 封地区，返回 451；这不是协议问题，重试无意义。"""
+    body = {"title": "Typesafe is not available in your region.", "status": 451}
+    engine = make_engine(monkeypatch, lambda request: httpx.Response(451, json=body))
+    with pytest.raises(JudgeError) as caught:
+        ask(engine)
+    assert caught.value.error_class is ErrorClass.REGION
+    assert caught.value.retryable is False
+    assert "not available in your region" in str(caught.value)
+
+
+def _capture_client(monkeypatch) -> dict:
+    """替换 AsyncClient，只记录构造参数并返回固定响应（httpx 的 proxy 会覆盖 transport）。"""
+    seen: dict = {}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            seen.update(kwargs)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return httpx.Response(200, json=OK_BODY)
+
+    monkeypatch.setattr(jev_engine.httpx, "AsyncClient", FakeClient)
+    return seen
+
+
+def test_proxy_is_passed_to_client(monkeypatch):
+    seen = _capture_client(monkeypatch)
+    engine = JevEngine(
+        JevSettings(
+            base_url="https://api.example.com/v1/systemone",
+            api_key="k",
+            model="jev-1.13.0",
+            proxy="  http://127.0.0.1:7890  ",
+        )
+    )
+    assert ask(engine).verdict == "yes"
+    assert engine.settings.proxy == "http://127.0.0.1:7890"
+    assert str(seen["proxy"]) == "http://127.0.0.1:7890"
+
+
+def test_empty_proxy_means_direct(monkeypatch):
+    seen = _capture_client(monkeypatch)
+    engine = JevEngine(
+        JevSettings(
+            base_url="https://api.example.com/v1/systemone",
+            api_key="k",
+            model="jev-1.13.0",
+        )
+    )
+    assert ask(engine).verdict == "yes"
+    assert seen["proxy"] is None

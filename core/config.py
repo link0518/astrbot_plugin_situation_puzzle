@@ -33,6 +33,7 @@ DEFAULTS: dict[str, Any] = {
         "jev_api_key": "",
         "jev_base_url": "https://api.typesafe.ai/v1/systemone",
         "jev_model": "jev-1.13.0",
+        "jev_proxy": "",
         "provider_id": "",
         "threshold": 0.5,
         "attempt_timeout_ms": 20000,

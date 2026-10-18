@@ -41,5 +41,6 @@ def build_engine(
             attempt_timeout_ms=config.attempt_timeout_ms,
             total_deadline_ms=config.total_deadline_ms,
             max_retries=config.max_retries,
+            proxy=str(config.get("judge.jev_proxy", "") or ""),
         )
     )

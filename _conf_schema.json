@@ -149,6 +149,12 @@
         "description": "Jev 模型",
         "default": "jev-1.13.0"
       },
+      "jev_proxy": {
+        "type": "string",
+        "description": "Jev 请求代理",
+        "default": "",
+        "hint": "留空直连。接口返回 451 说明服务器出口地区被限制，可填 http://user:pass@host:port 或 socks5://host:port 走代理"
+      },
       "provider_id": {
         "type": "string",
         "description": "provider 模式的判题模型",

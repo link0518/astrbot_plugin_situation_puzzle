@@ -290,6 +290,7 @@ AstrBot 把 schema 自动渲染成表单，分 5 组（`object` 嵌套即分组�
       "jev_api_key": { "type": "string", "description": "Jev API Key", "default": "", "secret": true },
       "jev_base_url": { "type": "string", "description": "Jev 接口地址", "default": "https://api.typesafe.ai/v1/systemone" },
       "jev_model": { "type": "string", "description": "Jev 模型", "default": "jev-1.13.0" },
+      "jev_proxy": { "type": "string", "description": "Jev 请求代理", "default": "", "hint": "留空直连；接口 451 时填海外出口" },
       "provider_id": { "type": "string", "description": "provider 模式的判题模型", "default": "", "_special": "select_provider", "hint": "留空则跟随当前会话模型" },
       "threshold": { "type": "float", "description": "置信度阈值", "default": 0.5, "hint": "低于阈值的判定降级为「无法确定」" },
       "attempt_timeout_ms": { "type": "int", "description": "单次超时(ms)", "default": 20000 },

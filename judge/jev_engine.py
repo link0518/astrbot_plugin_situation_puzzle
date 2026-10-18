@@ -47,6 +47,11 @@ def _clean_api_key(value: str) -> str:
     return key
 
 
+def _clean_proxy(value: str) -> str:
+    """代理地址留空表示直连；只去掉首尾空白。"""
+    return (value or "").strip()
+
+
 def _snippet(response: httpx.Response, limit: int = 160) -> str:
     """截一段响应体放进错误信息，便于面板日志定位。"""
     text = (response.text or "").strip().replace("\r", " ").replace("\n", " ")
@@ -63,11 +68,13 @@ class JevSettings:
     attempt_timeout_ms: int = 20000
     total_deadline_ms: int = 45000
     max_retries: int = 1
+    proxy: str = ""
 
     def __post_init__(self) -> None:
         self.base_url = _clean_base_url(self.base_url)
         self.api_key = _clean_api_key(self.api_key)
         self.model = (self.model or "").strip()
+        self.proxy = _clean_proxy(self.proxy)
 
 
 class JevEngine(JudgeEngine):
@@ -163,7 +170,10 @@ class JevEngine(JudgeEngine):
         timeout = max(0.5, min(timeout_s, self.settings.attempt_timeout_ms / 1000))
         try:
             async with httpx.AsyncClient(
-                timeout=timeout, trust_env=True, follow_redirects=True
+                timeout=timeout,
+                trust_env=True,
+                follow_redirects=True,
+                proxy=self.settings.proxy or None,
             ) as client:
                 response = await client.post(
                     self.settings.base_url, json=body, headers=headers
@@ -185,6 +195,12 @@ class JevEngine(JudgeEngine):
                 ErrorClass.RATE_LIMITED,
                 "Jev 触发限流：429",
                 retry_after_ms=seconds * 1000 or None,
+            )
+        if status == 451:
+            # 区域限制：请求本身没问题，是出口 IP 所在地区被封，重试和改模型都无用
+            raise JudgeError(
+                ErrorClass.REGION,
+                f"Jev 拒绝服务当前地区：451 {_snippet(response)}",
             )
         if status >= 500:
             raise JudgeError(
