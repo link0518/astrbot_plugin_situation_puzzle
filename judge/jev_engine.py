@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -33,6 +34,25 @@ from .retry import run_attempts
 _QUESTION_NAMES = {"ask": "verdict", "solve": "outcome", "review": "review"}
 
 
+def _clean_base_url(value: str) -> str:
+    """去掉首尾空白与尾部斜杠：带斜杠的地址会被服务端 307 跳转，空响应解析必然失败。"""
+    return (value or "").strip().rstrip("/")
+
+
+def _clean_api_key(value: str) -> str:
+    """容忍整段粘贴的 "Bearer xxx"，以及从别处复制带的换行。"""
+    key = (value or "").strip()
+    if key.lower().startswith("bearer "):
+        key = key[7:].strip()
+    return key
+
+
+def _snippet(response: httpx.Response, limit: int = 160) -> str:
+    """截一段响应体放进错误信息，便于面板日志定位。"""
+    text = (response.text or "").strip().replace("\r", " ").replace("\n", " ")
+    return text[:limit]
+
+
 @dataclass
 class JevSettings:
     base_url: str
@@ -43,6 +63,11 @@ class JevSettings:
     attempt_timeout_ms: int = 20000
     total_deadline_ms: int = 45000
     max_retries: int = 1
+
+    def __post_init__(self) -> None:
+        self.base_url = _clean_base_url(self.base_url)
+        self.api_key = _clean_api_key(self.api_key)
+        self.model = (self.model or "").strip()
 
 
 class JevEngine(JudgeEngine):
@@ -137,7 +162,9 @@ class JevEngine(JudgeEngine):
         }
         timeout = max(0.5, min(timeout_s, self.settings.attempt_timeout_ms / 1000))
         try:
-            async with httpx.AsyncClient(timeout=timeout, trust_env=True) as client:
+            async with httpx.AsyncClient(
+                timeout=timeout, trust_env=True, follow_redirects=True
+            ) as client:
                 response = await client.post(
                     self.settings.base_url, json=body, headers=headers
                 )
@@ -146,9 +173,12 @@ class JevEngine(JudgeEngine):
         except httpx.HTTPError as error:
             raise JudgeError(ErrorClass.NETWORK, f"Jev 网络错误：{error}") from error
 
-        if response.status_code in (401, 403):
-            raise JudgeError(ErrorClass.AUTH, f"Jev 鉴权失败：{response.status_code}")
-        if response.status_code == 429:
+        status = response.status_code
+        if status in (401, 403):
+            raise JudgeError(
+                ErrorClass.AUTH, f"Jev 鉴权失败：{status} {_snippet(response)}"
+            )
+        if status == 429:
             retry_after = response.headers.get("retry-after", "")
             seconds = int(retry_after) if retry_after.isdigit() else 0
             raise JudgeError(
@@ -156,13 +186,23 @@ class JevEngine(JudgeEngine):
                 "Jev 触发限流：429",
                 retry_after_ms=seconds * 1000 or None,
             )
-        if response.status_code >= 500:
+        if status >= 500:
             raise JudgeError(
-                ErrorClass.UPSTREAM, f"Jev 服务错误：{response.status_code}"
+                ErrorClass.UPSTREAM, f"Jev 服务错误：{status} {_snippet(response)}"
             )
-        if response.status_code >= 400:
+        if status >= 400:
+            # 400/404/422 多是地址或模型名填错，重试没有意义，直接指向配置
+            error_class = (
+                ErrorClass.CONFIG if status in (400, 404, 422) else ErrorClass.PROTOCOL
+            )
             raise JudgeError(
-                ErrorClass.PROTOCOL, f"Jev 请求被拒绝：{response.status_code}"
+                error_class, f"Jev 拒绝请求：{status} {_snippet(response)}"
+            )
+        if not 200 <= status < 300:
+            location = response.headers.get("location", "")
+            raise JudgeError(
+                ErrorClass.CONFIG,
+                f"Jev 返回跳转：{status} → {location}，接口地址可能不对",
             )
 
         try:
@@ -172,5 +212,12 @@ class JevEngine(JudgeEngine):
         if not isinstance(payload, dict):
             raise JudgeError(ErrorClass.PROTOCOL, "Jev 返回结构不合法")
 
-        choice, confidence = read_answer(payload, question_name)
+        try:
+            choice, confidence = read_answer(payload, question_name)
+        except JudgeError as error:
+            # 把响应片段带进日志，否则「返回了无效选项」根本看不出模型说了什么
+            snippet = json.dumps(payload, ensure_ascii=False)[:200]
+            raise JudgeError(
+                error.error_class, f"{error}；响应片段：{snippet}"
+            ) from error
         return choice, confidence, {"purpose": purpose, "usage": payload.get("usage")}

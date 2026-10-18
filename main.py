@@ -24,7 +24,7 @@ from .core.router import Action, Decision, classify, command_hint
 from .core.stats import EventLog, percent
 from .core.store import PuzzleStore
 from .core.templates import render, split_message, strip_command_slash
-from .judge import JudgeError
+from .judge import ErrorClass, JudgeError
 from .judge.factory import build_engine
 from .judge.prompts import AskInput, RecentQa, SolveInput
 from .judge.protocol import label
@@ -404,11 +404,7 @@ class SituationPuzzlePlugin(Star):
                         0,
                         error.error_class.value,
                     )
-                    self.events.add(
-                        "error",
-                        f"判题失败：{error.error_class.value}",
-                        detail=str(error),
-                    )
+                    self._log_judge_error(error)
                     return [self._error_text(error)]
 
                 room.rounds += 1
@@ -494,9 +490,7 @@ class SituationPuzzlePlugin(Star):
                     0,
                     error.error_class.value,
                 )
-                self.events.add(
-                    "error", f"判题失败：{error.error_class.value}", detail=str(error)
-                )
+                self._log_judge_error(error)
                 return [self._error_text(error)]
 
             await self.store.record_round(
@@ -747,11 +741,23 @@ class SituationPuzzlePlugin(Star):
         link = f"（{room.puzzle.source_url}）" if room.puzzle.source_url else ""
         return f"\n出处：{room.puzzle.source}{link}"
 
+    def _log_judge_error(self, error: JudgeError) -> None:
+        """错误详情同时进控制台与运行状态页，配置类问题按 error 级别暴露。"""
+        self.events.add(
+            "error", f"判题失败：{error.error_class.value}", detail=str(error)
+        )
+        message = f"[海龟汤] 判题失败（{error.error_class.value}）：{error}"
+        if error.error_class is ErrorClass.CONFIG:
+            logger.error(message)
+        else:
+            logger.warning(message)
+
     @staticmethod
     def _error_text(error: JudgeError) -> str:
         """按错误分类给玩家可读提示，不暴露内部细节。"""
         messages = {
             "auth": "主持人的判题服务没配好（鉴权失败），请管理员到插件面板检查 Key。",
+            "config": "判题请求被拒绝了，多半是接口地址或模型名填错，请管理员在面板核对。",
             "rate_limited": "主持人被限流了，喘口气再问一次。",
             "timeout": "这题我想太久了，换个问法试试？",
             "protocol": "主持人走神了，刚才那句没听明白，再问一次。",

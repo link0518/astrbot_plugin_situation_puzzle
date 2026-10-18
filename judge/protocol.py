@@ -21,6 +21,7 @@ class ErrorClass(str, Enum):
     AUTH = "auth"
     PROTOCOL = "protocol"
     TIMEOUT = "timeout"
+    CONFIG = "config"
 
 
 RETRYABLE = {
