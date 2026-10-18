@@ -1,0 +1,16 @@
+{
+  "views": {
+    "settings": {
+      "title": "Settings",
+      "description": "Judge engine, threshold, gameplay limits and message templates"
+    },
+    "library": {
+      "title": "Puzzle library",
+      "description": "Edit, import, export, sync and lint puzzles"
+    },
+    "dashboard": {
+      "title": "Runtime",
+      "description": "Games, judge latency, error breakdown and live feed"
+    }
+  }
+}

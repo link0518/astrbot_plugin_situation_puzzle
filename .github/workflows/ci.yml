@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest ruff
+
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Test
+        run: python -m pytest tests -q
+
+  package:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin manifest
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(".")
+          for required in ("metadata.yaml", "_conf_schema.json", "main.py", "logo.png"):
+              if not (root / required).exists():
+                  sys.exit(f"missing {required}")
+
+          schema = json.loads((root / "_conf_schema.json").read_text(encoding="utf-8"))
+          seed = json.loads((root / "resources" / "library.seed.json").read_text(encoding="utf-8"))
+          ids = [item["id"] for item in seed]
+          if len(ids) != len(set(ids)):
+              sys.exit("duplicate puzzle ids in seed library")
+          print(f"manifest ok, {len(seed)} seeded puzzles")
+          PY

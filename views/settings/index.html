@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jev 海龟汤 · 设置</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Jev 海龟汤</h1>
+      <p class="sub" id="metaLine">读取配置中…</p>
+    </div>
+    <div class="topbar-actions">
+      <span class="badge" id="engineBadge">—</span>
+      <button class="btn primary" id="saveBtn" type="button">保存配置</button>
+    </div>
+  </header>
+
+  <main class="stack">
+    <div id="form"></div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>连通性自检</h2>
+        <p class="sub">用一道真实题目试判：能看到判定、置信度与耗时，直接确认 Key 与模型是否可用。</p>
+      </div>
+      <div class="test-row">
+        <input id="testQuestion" type="text" placeholder="例如：爸爸已经去世了吗？" />
+        <button class="btn" id="testBtn" type="button">试判</button>
+        <button class="btn ghost" id="calibrateBtn" type="button">跑一组校准</button>
+      </div>
+      <div id="testResult" class="result" hidden></div>
+      <div id="calibrateWrap" class="result" hidden></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

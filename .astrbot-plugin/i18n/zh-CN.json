@@ -1,0 +1,16 @@
+{
+  "views": {
+    "settings": {
+      "title": "设置",
+      "description": "判题引擎、阈值、玩法限制与消息模板"
+    },
+    "library": {
+      "title": "题库",
+      "description": "题目增删改查、导入导出、同步官方库与体检"
+    },
+    "dashboard": {
+      "title": "运行状态",
+      "description": "对局概览、判题耗时、错误分布与实时流水"
+    }
+  }
+}

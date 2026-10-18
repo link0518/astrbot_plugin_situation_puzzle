@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jev 海龟汤 · 题库</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>题库管理</h1>
+      <p class="sub" id="summary">读取中…</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn primary" id="newBtn" type="button">新增题目</button>
+    </div>
+  </header>
+
+  <main class="stack">
+    <section class="card">
+      <div class="toolbar">
+        <input class="grow" id="q" type="text" placeholder="搜索标题 / 汤面 / 汤底 / id" />
+        <select id="difficulty">
+          <option value="">全部难度</option>
+          <option value="easy">简单</option>
+          <option value="medium">中等</option>
+          <option value="hard">困难</option>
+        </select>
+        <select id="category">
+          <option value="">全部类别</option>
+          <option value="本格">本格</option>
+          <option value="变格">变格</option>
+        </select>
+        <select id="enabled">
+          <option value="">全部状态</option>
+          <option value="1">已启用</option>
+          <option value="0">已停用</option>
+        </select>
+        <button class="btn" id="searchBtn" type="button">搜索</button>
+        <div class="spacer"></div>
+        <button class="btn" id="importBtn" type="button">导入 JSON</button>
+        <input id="fileInput" type="file" accept=".json,application/json" hidden />
+        <button class="btn" id="exportBtn" type="button">导出</button>
+        <button class="btn" id="syncBtn" type="button">同步官方库</button>
+        <button class="btn ghost" id="lintBtn" type="button">体检</button>
+      </div>
+
+      <div class="table-wrap" id="listWrap"></div>
+      <div class="pager" id="pager"></div>
+    </section>
+
+    <section class="card" id="lintCard" hidden>
+      <div class="card-head">
+        <h2>题目体检</h2>
+        <p class="sub" id="lintSummary"></p>
+      </div>
+      <div id="lintList"></div>
+    </section>
+  </main>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modal-card">
+      <h2 id="modalTitle">新增题目</h2>
+      <div class="form-grid">
+        <div class="field"><label class="field-label" for="e-id">题号（留空自动生成）</label><input id="e-id" type="text" /></div>
+        <div class="field"><label class="field-label" for="e-title">标题</label><input id="e-title" type="text" /></div>
+        <div class="field"><label class="field-label" for="e-category">类别</label>
+          <select id="e-category"><option value="本格">本格</option><option value="变格">变格</option></select>
+        </div>
+        <div class="field"><label class="field-label" for="e-difficulty">难度</label>
+          <select id="e-difficulty"><option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select>
+        </div>
+        <div class="field wide"><label class="field-label" for="e-story">汤面</label><textarea id="e-story" rows="4"></textarea></div>
+        <div class="field wide"><label class="field-label" for="e-answer">汤底</label><textarea id="e-answer" rows="5"></textarea></div>
+        <div class="field wide"><label class="field-label" for="e-hints">提示（每行一条）</label><textarea id="e-hints" rows="3"></textarea></div>
+        <div class="field"><label class="field-label" for="e-source">出处</label><input id="e-source" type="text" /></div>
+        <div class="field"><label class="field-label" for="e-source-url">出处链接</label><input id="e-source-url" type="text" /></div>
+        <div class="field"><label class="field-label" for="e-enabled">启用</label>
+          <div class="switch"><input id="e-enabled" type="checkbox" /><span class="sub" id="e-enabled-label">开启</span></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cancelBtn" type="button">取消</button>
+        <button class="btn primary" id="saveBtn" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

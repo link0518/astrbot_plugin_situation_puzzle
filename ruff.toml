@@ -1,0 +1,5 @@
+line-length = 88
+target-version = "py310"
+
+# 文档里的示例代码是手工排版（注释对齐等），不参与自动格式化
+extend-exclude = ["docs"]

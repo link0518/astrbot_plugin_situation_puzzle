@@ -1,0 +1,230 @@
+{
+  "enabled": {
+    "type": "bool",
+    "description": "启用插件",
+    "default": true
+  },
+  "basic": {
+    "type": "object",
+    "description": "基础设置",
+    "items": {
+      "host_name": {
+        "type": "string",
+        "description": "主持人名字",
+        "default": "Jev",
+        "hint": "出现在开局与判题文案里"
+      },
+      "language": {
+        "type": "string",
+        "description": "判定与文案语言",
+        "default": "zh",
+        "options": ["zh", "en"]
+      },
+      "room_scope": {
+        "type": "string",
+        "description": "开房范围",
+        "default": "group",
+        "options": ["group", "user"],
+        "hint": "group：一个群一局；user：每人独立进度"
+      },
+      "keyword_prefix": {
+        "type": "string",
+        "description": "关键词触发前缀",
+        "default": "海龟",
+        "hint": "发送「海龟 你的问题」即可提问，前缀与问题之间需要空格"
+      },
+      "default_difficulty": {
+        "type": "string",
+        "description": "默认难度",
+        "default": "random",
+        "options": ["random", "easy", "medium", "hard"]
+      },
+      "allow_group": {
+        "type": "bool",
+        "description": "允许群聊开局",
+        "default": true
+      },
+      "allow_private": {
+        "type": "bool",
+        "description": "允许私聊开局",
+        "default": true
+      }
+    }
+  },
+  "judge": {
+    "type": "object",
+    "description": "判题引擎",
+    "items": {
+      "engine": {
+        "type": "string",
+        "description": "判题引擎",
+        "default": "jev",
+        "options": ["jev", "provider"],
+        "hint": "jev：原版 SystemOne 协议；provider：使用 AstrBot 已配置的大模型"
+      },
+      "jev_api_key": {
+        "type": "string",
+        "description": "Jev API Key",
+        "default": "",
+        "secret": true,
+        "hint": "jev 引擎必填"
+      },
+      "jev_base_url": {
+        "type": "string",
+        "description": "Jev 接口地址",
+        "default": "https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone"
+      },
+      "jev_model": {
+        "type": "string",
+        "description": "Jev 模型",
+        "default": "jev-1.13"
+      },
+      "provider_id": {
+        "type": "string",
+        "description": "provider 模式的判题模型",
+        "default": "",
+        "_special": "select_provider",
+        "hint": "留空则跟随当前会话模型"
+      },
+      "threshold": {
+        "type": "float",
+        "description": "置信度阈值",
+        "default": 0.5,
+        "hint": "低于阈值的判定降级为「无法确定」，宁可让玩家重问也不硬猜"
+      },
+      "attempt_timeout_ms": {
+        "type": "int",
+        "description": "单次判题超时（毫秒）",
+        "default": 20000
+      },
+      "total_deadline_ms": {
+        "type": "int",
+        "description": "判题总期限（毫秒）",
+        "default": 45000,
+        "hint": "含重试在内的总耗时上限"
+      },
+      "max_retries": {
+        "type": "int",
+        "description": "失败重试次数",
+        "default": 1
+      },
+      "self_consistency": {
+        "type": "int",
+        "description": "采样次数",
+        "default": 1,
+        "hint": "大于 1 时多次采样取多数票，成本成倍增加，仅 provider 引擎生效"
+      },
+      "recent_qa_window": {
+        "type": "int",
+        "description": "历史问答窗口",
+        "default": 5,
+        "hint": "带最近几轮问答做上下文，帮助理解当前问题里的代词"
+      }
+    }
+  },
+  "game": {
+    "type": "object",
+    "description": "玩法",
+    "items": {
+      "hint_max": {
+        "type": "int",
+        "description": "提示上限",
+        "default": 3
+      },
+      "idle_timeout_min": {
+        "type": "int",
+        "description": "闲置自动结束（分钟）",
+        "default": 30
+      },
+      "reveal_policy": {
+        "type": "string",
+        "description": "揭晓权限",
+        "default": "all",
+        "options": ["all", "admin"]
+      },
+      "reveal_lock_s": {
+        "type": "int",
+        "description": "开局揭晓锁定（秒）",
+        "default": 30,
+        "hint": "防止开局立刻被揭晓泄底"
+      },
+      "allow_replay": {
+        "type": "bool",
+        "description": "允许重玩已解题目",
+        "default": false
+      }
+    }
+  },
+  "limit": {
+    "type": "object",
+    "description": "限流",
+    "items": {
+      "user_cooldown_s": {
+        "type": "int",
+        "description": "用户提问冷却（秒）",
+        "default": 3
+      },
+      "room_queue_limit": {
+        "type": "int",
+        "description": "房间排队上限",
+        "default": 8
+      },
+      "daily_limit": {
+        "type": "int",
+        "description": "每日开局上限",
+        "default": 0,
+        "hint": "0 表示不限"
+      }
+    }
+  },
+  "message": {
+    "type": "object",
+    "description": "消息模板",
+    "items": {
+      "max_chars": {
+        "type": "int",
+        "description": "单条字数上限",
+        "default": 1500,
+        "hint": "超长内容会按段落自动分段发送"
+      },
+      "tpl_start": {
+        "type": "text",
+        "description": "开局模板",
+        "default": "【{title}】\n{story}\n\n我是{host}，这碗汤的主持人。@我提问，我只回答 是 / 否 / 无关。\n/汤 提示 · /汤 答 <推理> · /汤 揭晓",
+        "hint": "可用变量：{title} {story} {host}"
+      },
+      "tpl_verdict": {
+        "type": "text",
+        "description": "判定模板",
+        "default": "「{question}」→ {verdict}",
+        "hint": "可用变量：{question} {verdict} {confidence}"
+      },
+      "tpl_uncertain": {
+        "type": "text",
+        "description": "无法确定模板",
+        "default": "这个问题我得再看看（无法确定）"
+      },
+      "tpl_solved": {
+        "type": "text",
+        "description": "破解成功模板",
+        "default": "破解成功！\n\n{answer}",
+        "hint": "可用变量：{answer} {solved_by} {rounds} {source}"
+      },
+      "tpl_close": {
+        "type": "text",
+        "description": "接近真相模板",
+        "default": "接近真相了，但还缺一环。"
+      },
+      "tpl_not_yet": {
+        "type": "text",
+        "description": "还没猜对模板",
+        "default": "还没猜对，再想想那些反常的细节。"
+      },
+      "tpl_reveal": {
+        "type": "text",
+        "description": "揭晓模板",
+        "default": "汤底：\n{answer}{source}"
+      }
+    }
+  }
+}

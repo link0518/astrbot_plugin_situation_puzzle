@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jev 海龟汤 · 运行状态</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>运行状态</h1>
+      <p class="sub" id="metaLine">读取中…</p>
+    </div>
+    <div class="topbar-actions">
+      <select id="days">
+        <option value="1">今天</option>
+        <option value="7">近 7 天</option>
+        <option value="30">近 30 天</option>
+      </select>
+      <button class="btn" id="refreshBtn" type="button">刷新</button>
+    </div>
+  </header>
+
+  <main class="stack">
+    <section class="card">
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <div class="split">
+      <section class="card">
+        <div class="card-head"><h2>判定分布</h2><p class="sub">提问判定结果占比</p></div>
+        <div class="bars" id="verdictBars"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>错误分类</h2><p class="sub">为空表示没有判题失败</p></div>
+        <div class="bars" id="errorBars"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="card-head"><h2>活跃房间</h2><p class="sub" id="roomSummary"></p></div>
+      <div id="rooms"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>实时判题流水</h2><p class="sub">通过插件页面桥接订阅，不需要 SSE 原生连接</p></div>
+      <div class="log-tools">
+        <button class="btn" id="pauseBtn" type="button">暂停</button>
+        <span class="sub" id="sseState">连接中…</span>
+      </div>
+      <div class="log" id="log"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

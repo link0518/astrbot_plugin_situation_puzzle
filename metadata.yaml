@@ -1,0 +1,22 @@
+name: astrbot_plugin_situation_puzzle
+display_name: Jev 海龟汤
+short_desc: AI 主持的海龟汤，只回答是 / 否 / 无关，拿不准会认怂。
+desc: >-
+  把 Situation-Puzzle 的「AI 主持海龟汤」搬进 IM。群聊即房间，@我、回复我或发「海龟 问题」
+  都能提问；每位玩家的还原由 Jev 判题，判定带置信度，不够笃定就说「无法确定」。
+  内置 350 道题，支持面板管理题库、切换判题引擎、试用与校准阈值。
+version: 0.1.0
+author: ZeroTang
+repo: https://github.com/link0518/astrbot_plugin_situation_puzzle
+astrbot_version: ">=4.16,<5"
+support_platforms:
+  - aiocqhttp
+  - qq_official
+  - telegram
+  - wecom
+  - lark
+  - dingtalk
+  - discord
+  - slack
+  - kook
+  - satori

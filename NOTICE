@@ -1,0 +1,23 @@
+# NOTICE
+
+Jev 海龟汤 · AstrBot 插件（`astrbot_plugin_situation_puzzle`）
+Copyright (C) 2026 ZeroTang
+
+本程序是自由软件：你可以依据自由软件基金会发布的 GNU 通用公共许可证第 3 版
+（或你选择的任何更新版本）条款重新分发和/或修改它。许可证全文见 [LICENSE](LICENSE)。
+
+本程序按“原样”提供，不含任何担保。
+
+## 第三方内容
+
+- **判题协议、提示词与题库**移植自 [ZeroTang05/Situation-Puzzle](https://github.com/ZeroTang05/Situation-Puzzle)，
+  该上游项目同样以 GPL-3.0 发布。
+- **题库内容**包含平台原创与公开节目材料的改编。逐题来源与整理说明见上游仓库的
+  [`data/library-sources.md`](https://github.com/ZeroTang05/Situation-Puzzle/blob/main/data/library-sources.md)。
+  转载或再分发本插件的题库时，请一并保留该出处说明。
+- **运行平台**：[AstrBot](https://github.com/AstrBotDevs/AstrBot)。
+
+## 名称与商标
+
+“海龟汤”“Situation-Puzzle”“Jev”“AstrBot” 等名称的权利归各自所有者。
+本仓库使用这些名称仅用于说明来源与兼容性，不表示任何官方背书。
