@@ -141,12 +141,13 @@
       "jev_base_url": {
         "type": "string",
         "description": "Jev 接口地址",
-        "default": "https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone"
+        "default": "https://api.typesafe.ai/v1/systemone",
+        "hint": "官方地址；自建代理时改成自己的完整 URL"
       },
       "jev_model": {
         "type": "string",
         "description": "Jev 模型",
-        "default": "jev-1.13"
+        "default": "jev-1.13.0"
       },
       "provider_id": {
         "type": "string",

@@ -125,13 +125,14 @@ git clone https://github.com/link0518/astrbot_plugin_situation_puzzle.git
 
 ```json
 {
-  "model": "jev-1.13",
+  "model": "jev-1.13.0",
   "state": { "汤面": "...", "真相": "...", "类别": "...", "历史问答": [...], "玩家提问": "..." },
   "questions": { "ask": { "type": "choice", "instructions": "...", "criteria": { "是": "...", "否": "...", "无关": "..." } } }
 }
 ```
 
-需要在面板填 `jev_api_key`；`base_url` 与 `model` 也可自定义。
+默认接口 `https://api.typesafe.ai/v1/systemone`，模型 `jev-1.13.0`。
+需要在面板填 `jev_api_key`；`base_url` 与 `model` 也可自定义（自建代理时填自己的完整 URL）。
 响应必须带 `probabilities`，缺了按**协议错误**处理 —— 这是原项目的硬约束，插件不改。
 
 ### `provider`（可选）

@@ -65,3 +65,24 @@ def test_enum_options_cover_defaults():
     for path, definition in iter_defs(schema):
         if "options" in definition:
             assert definition["default"] in definition["options"], path
+
+
+def test_legacy_jev_defaults_are_migrated():
+    """旧版本写在配置里的第三方代理地址与模型名，加载时归位到官方默认。"""
+    from astrbot_plugin_situation_puzzle.core.config import PluginConfig
+
+    legacy = PluginConfig(
+        {
+            "judge": {
+                "jev_base_url": "https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone",
+                "jev_model": "jev-1.13",
+            }
+        }
+    )
+    assert legacy.get("judge.jev_base_url") == DEFAULTS["judge"]["jev_base_url"]
+    assert legacy.get("judge.jev_model") == DEFAULTS["judge"]["jev_model"]
+
+    custom = PluginConfig(
+        {"judge": {"jev_base_url": "https://my-proxy.example/v1/systemone"}}
+    )
+    assert custom.get("judge.jev_base_url") == "https://my-proxy.example/v1/systemone"

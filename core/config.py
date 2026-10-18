@@ -31,8 +31,8 @@ DEFAULTS: dict[str, Any] = {
     "judge": {
         "engine": "jev",
         "jev_api_key": "",
-        "jev_base_url": "https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone",
-        "jev_model": "jev-1.13",
+        "jev_base_url": "https://api.typesafe.ai/v1/systemone",
+        "jev_model": "jev-1.13.0",
         "provider_id": "",
         "threshold": 0.5,
         "attempt_timeout_ms": 20000,
@@ -67,6 +67,12 @@ DEFAULTS: dict[str, Any] = {
         "tpl_not_yet": "还没猜对，再想想那些反常的细节。",
     },
 }
+
+# 旧版本内置的第三方代理地址与模型名：升级后按原值精确匹配换回官方默认
+LEGACY_JEV_BASE_URLS = {
+    "https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone",
+}
+LEGACY_JEV_MODELS = {"jev-1.13": "jev-1.13.0"}
 
 # 字段约束：取值枚举、数值区间
 ENUMS = {
@@ -165,6 +171,19 @@ class PluginConfig:
 
     def __init__(self, raw: dict[str, Any] | None = None) -> None:
         self.raw = _deep_merge(DEFAULTS, raw or {})
+        self._migrate_judge_defaults()
+
+    def _migrate_judge_defaults(self) -> None:
+        """把旧版本留下的代理地址与模型名归位到官方默认值。
+
+        只做精确匹配，玩家自己填的地址不会被覆盖。
+        """
+        judge = self.raw.setdefault("judge", {})
+        if str(judge.get("jev_base_url") or "") in LEGACY_JEV_BASE_URLS:
+            judge["jev_base_url"] = DEFAULTS["judge"]["jev_base_url"]
+        model = str(judge.get("jev_model") or "")
+        if model in LEGACY_JEV_MODELS:
+            judge["jev_model"] = LEGACY_JEV_MODELS[model]
 
     def get(self, path: str, default: Any = None) -> Any:
         node: Any = self.raw

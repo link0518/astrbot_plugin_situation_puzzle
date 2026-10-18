@@ -35,7 +35,7 @@ def build_engine(
         JevSettings(
             base_url=str(config.get("judge.jev_base_url", "") or ""),
             api_key=str(config.get("judge.jev_api_key", "") or ""),
-            model=str(config.get("judge.jev_model", "jev-1.13") or "jev-1.13"),
+            model=str(config.get("judge.jev_model", "jev-1.13.0") or "jev-1.13.0"),
             threshold=config.threshold,
             language=language,
             attempt_timeout_ms=config.attempt_timeout_ms,

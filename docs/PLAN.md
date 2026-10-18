@@ -217,7 +217,7 @@ POST {base_url}
 Authorization: Bearer {api_key}
 Accept-Encoding: identity
 {
-  "model": "jev-1.13",
+  "model": "jev-1.13.0",
   "state": { "汤面": "...", "真相": "...", "类别": "本格：…", "核心事实": [...],
              "历史问答": ["「…」→ 是"], "玩家提问": "…" },
   "questions": {
@@ -227,7 +227,7 @@ Accept-Encoding: identity
 }
 ```
 
-- `base_url / api_key / model` 全部可在面板自定义（默认 `base_url=https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone`、`model=jev-1.13`）
+- `base_url / api_key / model` 全部可在面板自定义（默认 `base_url=https://api.typesafe.ai/v1/systemone`、`model=jev-1.13.0`）
 - 响应解析 `answers.ask.{choice, probabilities}`，`probabilities[choice]` 即 confidence
 - **缺 probabilities → `protocol` 错误，禁止默认 0**
 - `429` → 读 `Retry-After`；`401/403` → `auth` 立即失败并在回复里提示去面板检查 Key
@@ -288,8 +288,8 @@ AstrBot 把 schema 自动渲染成表单，分 5 组（`object` 嵌套即分组�
     "items": {
       "engine": { "type": "string", "description": "引擎", "default": "jev", "options": ["jev", "provider"] },
       "jev_api_key": { "type": "string", "description": "Jev API Key", "default": "", "secret": true },
-      "jev_base_url": { "type": "string", "description": "Jev 接口地址", "default": "https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone" },
-      "jev_model": { "type": "string", "description": "Jev 模型", "default": "jev-1.13" },
+      "jev_base_url": { "type": "string", "description": "Jev 接口地址", "default": "https://api.typesafe.ai/v1/systemone" },
+      "jev_model": { "type": "string", "description": "Jev 模型", "default": "jev-1.13.0" },
       "provider_id": { "type": "string", "description": "provider 模式的判题模型", "default": "", "_special": "select_provider", "hint": "留空则跟随当前会话模型" },
       "threshold": { "type": "float", "description": "置信度阈值", "default": 0.5, "hint": "低于阈值的判定降级为「无法确定」" },
       "attempt_timeout_ms": { "type": "int", "description": "单次超时(ms)", "default": 20000 },
