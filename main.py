@@ -20,7 +20,7 @@ from astrbot.api.star import Context, Star
 
 from .core.config import PluginConfig
 from .core.room import Room, RoomManager
-from .core.router import Action, Decision, classify
+from .core.router import Action, Decision, classify, command_hint
 from .core.stats import EventLog, percent
 from .core.store import PuzzleStore
 from .core.templates import render, split_message, strip_command_slash
@@ -32,11 +32,18 @@ from .web.api import PLUGIN_NAME, PluginAPI
 
 SEED_VERSION = "2026-10-19.1"
 
-HELP_TEXT = """【Jev 海龟汤】
-/汤 开局 · /汤 提示 · /汤 答 <推理> · /汤 揭晓
-/汤 状态 · /汤 跳过 · /汤 排行 · /汤 题库
-提问方式：@我 或 回复我的消息 或 发送「海龟 你的问题」
-我只回答 是 / 否 / 无关，拿不准会说无法确定。"""
+# 帮助文案里的顺序，开局单独处理（直接用主指令本身）
+HELP_ORDER = (
+    "start",
+    "hint",
+    "answer",
+    "reveal",
+    "status",
+    "skip",
+    "rank",
+    "library",
+    "help",
+)
 
 
 def _plugin_data_dir() -> Path:
@@ -183,6 +190,8 @@ class SituationPuzzlePlugin(Star):
             has_room=self.rooms.get(event.unified_msg_origin) is not None,
             prefix=self.config.keyword_prefix,
             command_style=self.config.command_style,
+            command_names=self.config.command_names,
+            subcommands=self.config.subcommands,
         )
         if decision.action is not Action.COMMAND:
             return
@@ -193,11 +202,10 @@ class SituationPuzzlePlugin(Star):
     async def _run_command(
         self, event: AstrMessageEvent, decision: Decision
     ) -> AsyncGenerator[Any, None]:
-        argument = decision.argument or ""
-        subcommand = decision.subcommand.lower()
-        rest = self._split_argument(argument, decision.subcommand)
+        subcommand = decision.subcommand
+        rest = decision.argument or ""
 
-        if subcommand in ("", "开", "start", "新", "新局"):
+        if subcommand == "start":
             texts = await self._start_game(
                 event,
                 difficulty=self._difficulty(rest),
@@ -207,32 +215,36 @@ class SituationPuzzlePlugin(Star):
                 yield item
             return
 
+        if not subcommand:
+            # 带了参数但不认识这个子指令，给玩法说明而不是重开一局
+            async for item in self._emit(event, [self._help_text()]):
+                yield item
+            return
+
         room = self.rooms.get(event.unified_msg_origin)
-        if room is None and subcommand not in ("帮助", "help", "?", "题库", "stats"):
+        if room is None and subcommand not in ("help", "library"):
             async for item in self._emit(
-                event, ["现在没有进行中的对局。发送 /汤 开一局。"]
+                event, [f"现在没有进行中的对局。发送 {self._command_hint()} 开一局。"]
             ):
                 yield item
             return
 
-        if subcommand in ("提示", "hint", "h"):
+        if subcommand == "hint":
             texts = self._hint(room)
-        elif subcommand in ("答", "solve", "解", "作答"):
+        elif subcommand == "answer":
             texts = await self._solve(event, room, rest)
-        elif subcommand in ("揭晓", "reveal", "答案"):
+        elif subcommand == "reveal":
             texts = await self._reveal(event, room)
-        elif subcommand in ("跳过", "skip", "换", "换题"):
+        elif subcommand == "skip":
             texts = await self._skip(event, room)
-        elif subcommand in ("状态", "status", "info"):
+        elif subcommand == "status":
             texts = [self._status(room)]
-        elif subcommand in ("排行", "rank", "榜", "排行榜"):
+        elif subcommand == "rank":
             texts = [await self._rank(room.umo)]
-        elif subcommand in ("题库", "stats", "统计"):
+        elif subcommand == "library":
             texts = [await self._overview()]
-        elif subcommand in ("帮助", "help", "?", "菜单"):
-            texts = [HELP_TEXT]
         else:
-            texts = [HELP_TEXT]
+            texts = [self._help_text()]
 
         async for item in self._emit(event, texts):
             yield item
@@ -259,6 +271,8 @@ class SituationPuzzlePlugin(Star):
             reply_bot=reply_bot,
             prefix=self.config.keyword_prefix,
             command_style=self.config.command_style,
+            command_names=self.config.command_names,
+            subcommands=self.config.subcommands,
         )
         if decision.action is Action.IGNORE:
             return
@@ -335,6 +349,8 @@ class SituationPuzzlePlugin(Star):
                 title=puzzle.title,
                 story=puzzle.story,
                 host=self.config.host_name,
+                cmd=self._command_hint(),
+                quick=self._quick_actions(),
             )
         ]
         if first_question:
@@ -446,7 +462,9 @@ class SituationPuzzlePlugin(Star):
     ) -> list[str]:
         solution = (solution or "").strip()
         if len(solution) < 8:
-            return ["把推理写完整一点再提交：/汤 答 <你的推理>"]
+            return [
+                f"把推理写完整一点再提交：{self._command_hint('answer')} <你的推理>"
+            ]
         user_id = event.get_sender_id()
         name = event.get_sender_name()
 
@@ -578,7 +596,7 @@ class SituationPuzzlePlugin(Star):
             f"【{room.puzzle.title}】进行中\n"
             f"已提问 {room.rounds} 轮 · 提示 {room.hints_used}/{total} · "
             f"参与者 {len(room.participants)} 人 · 难度 {room.puzzle.difficulty}\n"
-            "/汤 提示 · /汤 答 <推理> · /汤 揭晓"
+            f"{self._quick_actions()}"
         )
 
     async def _rank(self, umo: str) -> str:
@@ -606,21 +624,52 @@ class SituationPuzzlePlugin(Star):
         )
 
     # ---- 工具 ----
+    def _command_hint(self, subcommand: str = "") -> str:
+        """文案里的指令写法：斜杠按指令模式取舍，已被禁用的子指令返回空串。"""
+        head = command_hint(self.config.command_names, self.config.command_style)
+        if not subcommand:
+            return head
+        aliases = self.config.subcommands.get(subcommand) or ()
+        return f"{head} {aliases[0]}" if aliases else ""
+
+    def _quick_actions(self) -> str:
+        """开局与状态文案里的快捷操作，跟随当前映射，跳过已禁用的子指令。"""
+        bits: list[str] = []
+        for key, suffix in (("hint", ""), ("answer", " <推理>"), ("reveal", "")):
+            usage = self._command_hint(key)
+            if usage:
+                bits.append(f"{usage}{suffix}")
+        return " · ".join(bits)
+
+    def _help_text(self) -> str:
+        cmd = self._command_hint()
+        subs = self.config.subcommands
+        usages: list[str] = []
+        for key in HELP_ORDER:
+            aliases = subs.get(key) or ()
+            if key == "start":
+                usages.append(cmd)
+            elif aliases:
+                usages.append(f"{cmd} {aliases[0]}")
+
+        lines = ["【Jev 海龟汤】"]
+        for index in range(0, len(usages), 4):
+            lines.append(" · ".join(usages[index : index + 4]))
+        lines.append(
+            f"提问方式：@我 或 回复我的消息 或 发送「{self.config.keyword_prefix} 你的问题」"
+        )
+        lines.append("我只回答 是 / 否 / 无关，拿不准会说无法确定。")
+        return "\n".join(lines)
+
     async def _emit(
         self, event: AstrMessageEvent, texts: list[str]
     ) -> AsyncGenerator[Any, None]:
         text_mode = self.config.command_style == "text"
         for text in texts:
             if text_mode:
-                text = strip_command_slash(text)
+                text = strip_command_slash(text, self.config.command_names)
             for chunk in split_message(text, self.config.max_chars):
                 yield event.plain_result(chunk)
-
-    @staticmethod
-    def _split_argument(argument: str, subcommand: str) -> str:
-        if subcommand and argument.startswith(subcommand):
-            return argument[len(subcommand) :].strip(" ：:，,、")
-        return argument.strip()
 
     @staticmethod
     def _difficulty(value: str) -> str:

@@ -19,7 +19,7 @@ def test_command_variants():
 def test_command_wins_over_keyword():
     decision = classify("/汤 提示", has_room=True, at_bot=True)
     assert decision.action is Action.COMMAND
-    assert decision.subcommand == "提示"
+    assert decision.subcommand == "hint"
 
 
 def test_at_bot_requires_active_room():
@@ -71,7 +71,7 @@ def test_command_style_both_accepts_slash_and_text():
     for text in ("/汤 状态", "汤 状态", "／汤 状态"):
         decision = classify(text, has_room=True, command_style="both")
         assert decision.action is Action.COMMAND, text
-        assert decision.subcommand == "状态"
+        assert decision.subcommand == "status"
 
 
 def test_command_style_slash_rejects_text_form():
@@ -86,7 +86,7 @@ def test_command_style_slash_rejects_text_form():
 def test_command_style_text_rejects_slash_form():
     decision = classify("汤 提示", has_room=True, command_style="text")
     assert decision.action is Action.COMMAND
-    assert decision.subcommand == "提示"
+    assert decision.subcommand == "hint"
     assert classify("/汤 提示", has_room=True, command_style="text").action is (
         Action.IGNORE
     )

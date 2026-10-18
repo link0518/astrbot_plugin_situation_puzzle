@@ -44,6 +44,64 @@
         ],
         "hint": "both：/汤 与 汤 都认；slash：仅 /汤 开、/汤 提示；text：仅 汤 开、汤 提示（不带斜杠）"
       },
+      "command_names": {
+        "type": "string",
+        "description": "主指令写法",
+        "default": "汤,海龟汤,turtle,sp",
+        "hint": "逗号分隔，第一个用于文案展示。只改这里就能把「汤」换成别的词"
+      },
+      "sub_commands": {
+        "type": "object",
+        "description": "子指令映射",
+        "hint": "每组逗号分隔，可自由改词；清空则禁用该子指令",
+        "items": {
+          "start": {
+            "type": "string",
+            "description": "开局",
+            "default": "开,开局,开始,新,新局,start"
+          },
+          "hint": {
+            "type": "string",
+            "description": "提示",
+            "default": "提示,线索,hint,h"
+          },
+          "answer": {
+            "type": "string",
+            "description": "作答",
+            "default": "答,作答,解,solve"
+          },
+          "reveal": {
+            "type": "string",
+            "description": "揭晓",
+            "default": "揭晓,看答案,答案,reveal"
+          },
+          "skip": {
+            "type": "string",
+            "description": "跳过",
+            "default": "跳过,换题,换,skip"
+          },
+          "status": {
+            "type": "string",
+            "description": "状态",
+            "default": "状态,进度,status,info"
+          },
+          "rank": {
+            "type": "string",
+            "description": "排行",
+            "default": "排行,排名,排行榜,rank"
+          },
+          "library": {
+            "type": "string",
+            "description": "题库",
+            "default": "题库,统计,stats"
+          },
+          "help": {
+            "type": "string",
+            "description": "帮助",
+            "default": "帮助,玩法,菜单,help,?"
+          }
+        }
+      },
       "default_difficulty": {
         "type": "string",
         "description": "默认难度",
@@ -201,8 +259,8 @@
       "tpl_start": {
         "type": "text",
         "description": "开局模板",
-        "default": "【{title}】\n{story}\n\n我是{host}，这碗汤的主持人。@我提问，我只回答 是 / 否 / 无关。\n/汤 提示 · /汤 答 <推理> · /汤 揭晓",
-        "hint": "可用变量：{title} {story} {host}"
+        "default": "【{title}】\n{story}\n\n我是{host}，这碗汤的主持人。@我提问，我只回答 是 / 否 / 无关。\n{quick}",
+        "hint": "可用变量：{title} {story} {host} {cmd} {quick}；{cmd} 是主指令，{quick} 是按当前指令映射生成的操作提示"
       },
       "tpl_verdict": {
         "type": "text",

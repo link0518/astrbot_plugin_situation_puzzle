@@ -21,6 +21,19 @@ const OPTION_LABELS = {
 
 const state = { schema: {}, values: {}, meta: {}, loaded: false };
 
+// 子指令固定顺序，与后端 router.SUBCOMMAND_KEYS 一致
+const SUBCOMMAND_LABELS = [
+  ["start", "开局"],
+  ["hint", "提示"],
+  ["answer", "作答"],
+  ["reveal", "揭晓"],
+  ["skip", "跳过"],
+  ["status", "状态"],
+  ["rank", "排行"],
+  ["library", "题库"],
+  ["help", "帮助"],
+];
+
 const formRoot = document.getElementById("form");
 const toastEl = document.getElementById("toast");
 const engineBadge = document.getElementById("engineBadge");
@@ -72,6 +85,36 @@ function secretConfigured(path) {
   return Boolean(flags[path]);
 }
 
+function splitAliases(value) {
+  return String(value || "")
+    .split(/[,，、;；\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function commandStyle() {
+  return String(getValue("basic.command_style") || "both");
+}
+
+function refreshCommandPreview() {
+  const preview = formRoot.querySelector("[data-cmd-preview]");
+  const namesInput = document.getElementById("f-command-names");
+  if (!preview || !namesInput) return;
+
+  const head = splitAliases(namesInput.value)[0] || "汤";
+  // 读 DOM 上的下拉值，改完立刻能看到斜杠有无变化
+  const styleEl = formRoot.querySelector('[data-path="basic.command_style"]');
+  const style = styleEl ? styleEl.value : commandStyle();
+  const cmd = style === "text" ? head : `/${head}`;
+  const bits = [cmd];
+  for (const [key] of SUBCOMMAND_LABELS) {
+    if (key === "start") continue;
+    const first = splitAliases(document.getElementById(`f-sub-${key}`)?.value)[0];
+    if (first) bits.push(`${cmd} ${first}`);
+  }
+  preview.textContent = bits.join(" · ");
+}
+
 function engineKind() {
   return (getValue("judge.engine") || "jev").toString();
 }
@@ -94,6 +137,14 @@ function makeControl(path, def) {
     area.value = value ?? def.default ?? "";
     area.dataset.path = path;
     area.dataset.kind = "string";
+    return { control: area, id };
+  }
+
+  if (type === "object") {
+    const area = node("textarea", { id, rows: "4" });
+    area.value = JSON.stringify(value ?? def.default ?? {}, null, 2);
+    area.dataset.path = path;
+    area.dataset.kind = "json";
     return { control: area, id };
   }
 
@@ -169,12 +220,71 @@ function makeField(path, def) {
   if (def.hint) wrapper.appendChild(node("span", { class: "field-hint", text: def.hint }));
   if (def.type === "text") {
     const chips = node("div", { class: "chips" });
-    for (const name of ["{title}", "{story}", "{answer}", "{host}", "{question}", "{verdict}", "{source}", "{rounds}"]) {
+    for (const name of ["{title}", "{story}", "{answer}", "{host}", "{question}", "{verdict}", "{source}", "{rounds}", "{cmd}", "{quick}"]) {
       chips.appendChild(node("span", { class: "chip", text: name }));
     }
     wrapper.appendChild(chips);
   }
   return wrapper;
+}
+
+function makeCommandMap(section) {
+  const items = section.items || {};
+  const namesDef = items.command_names || {};
+  const subsDef = items.sub_commands || {};
+  const subDefaults = subsDef.items || {};
+  const values = state.values.basic || {};
+  const current = values.sub_commands || {};
+
+  const block = node("div", { class: "command-map" });
+  block.appendChild(node("div", { class: "command-head" },
+    node("h3", { text: "指令映射" }),
+    node("span", { class: "sub", text: "改完保存即可生效，不必重启" }),
+  ));
+
+  const namesInput = node("input", { type: "text", id: "f-command-names", placeholder: "汤,海龟汤,turtle,sp" });
+  namesInput.value = values.command_names ?? namesDef.default ?? "";
+  namesInput.dataset.path = "basic.command_names";
+  namesInput.dataset.kind = "string";
+  namesInput.addEventListener("input", refreshCommandPreview);
+
+  const namesRow = node("div", { class: "field wide" },
+    node("label", { class: "field-label", for: "f-command-names" }, "主指令写法"),
+    namesInput,
+    node("span", { class: "field-hint", text: "逗号分隔，第一个作为文案里的展示名；下面的子指令都基于它拼接" }),
+  );
+  block.appendChild(namesRow);
+
+  const rows = node("div", { class: "cmd-rows" });
+  for (const [key, label] of SUBCOMMAND_LABELS) {
+    const id = `f-sub-${key}`;
+    const input = node("input", { type: "text", id, placeholder: "留空表示禁用" });
+    input.value = current[key] ?? subDefaults[key]?.default ?? "";
+    input.dataset.path = `basic.sub_commands.${key}`;
+    input.dataset.kind = "string";
+    input.addEventListener("input", refreshCommandPreview);
+    rows.appendChild(node("div", { class: "cmd-row" },
+      node("label", { class: "field-label", for: id }, label),
+      input,
+    ));
+  }
+  block.appendChild(rows);
+
+  block.appendChild(node("p", { class: "field-hint", text: "同一个词不要跨组重复（比如「答」放进作答后，就别再放进揭晓）；改词后旧写法立即失效。" }));
+  block.appendChild(node("div", { class: "command-preview", "data-cmd-preview": "" }));
+
+  const reset = node("button", { class: "btn ghost", type: "button", text: "恢复默认映射" });
+  reset.addEventListener("click", () => {
+    namesInput.value = namesDef.default ?? "";
+    for (const [key] of SUBCOMMAND_LABELS) {
+      const input = document.getElementById(`f-sub-${key}`);
+      if (input) input.value = subDefaults[key]?.default ?? "";
+    }
+    refreshCommandPreview();
+  });
+  block.appendChild(node("div", { class: "cmd-actions" }, reset));
+
+  return block;
 }
 
 function applyEngineVisibility() {
@@ -206,15 +316,23 @@ function renderForm() {
     card.appendChild(node("div", { class: "card-head" }, node("h2", { text: section.description || key })));
     const grid = node("div", { class: "grid" });
     for (const [fieldKey, def] of Object.entries(section.items || {})) {
+      // 子指令映射用下面的专用编辑器渲染，不走通用控件
+      if (def.type === "object") continue;
       grid.appendChild(makeField(`${key}.${fieldKey}`, def));
     }
     card.appendChild(grid);
+    if (key === "basic" && section.items?.sub_commands) {
+      card.appendChild(makeCommandMap(section));
+    }
     formRoot.appendChild(card);
   }
 
   const engineSelect = formRoot.querySelector('[data-path="judge.engine"]');
   if (engineSelect) engineSelect.addEventListener("change", applyEngineVisibility);
+  const styleSelect = formRoot.querySelector('[data-path="basic.command_style"]');
+  if (styleSelect) styleSelect.addEventListener("change", refreshCommandPreview);
   applyEngineVisibility();
+  refreshCommandPreview();
 
   metaLine.textContent = `题库 ${state.meta.puzzle_total ?? 0} 题 · 阈值 ${Number(getValue("judge.threshold") ?? 0.5).toFixed(2)} · ${state.meta.engine === "provider" ? "大模型判题" : "Jev 判题"}`;
 }
@@ -226,7 +344,13 @@ function collect() {
     let value;
     if (element.dataset.kind === "bool") value = element.checked;
     else if (element.dataset.kind === "number") value = Number(element.value);
-    else value = element.value;
+    else if (element.dataset.kind === "json") {
+      try {
+        value = JSON.parse(element.value || "{}");
+      } catch {
+        value = element.value;
+      }
+    } else value = element.value;
     setValue(patch, path, value);
   }
   return patch;

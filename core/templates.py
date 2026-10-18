@@ -4,20 +4,23 @@ from __future__ import annotations
 
 import re
 
+from .router import DEFAULT_COMMAND_ALIASES
+
 _VAR = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 _SENTENCE = re.compile(r"(?<=[。！？!?；;\n])")
-# 文案里的指令写法：斜杠 + 别名，别名后需接空白、标点或结束
-_CMD_SLASH = re.compile(
-    r"[/／](?=(?:海龟汤|turtle|sp|汤)(?=[\s\u3000·、，。！？)）]|$))"
-)
 
 
-def strip_command_slash(text: str) -> str:
+def strip_command_slash(text: str, command_names: tuple[str, ...] | None = None) -> str:
     """把文案里的「/汤」改写成「汤」。
 
     文字指令模式下实际用法不带斜杠，文案跟着改，避免教玩家一个不生效的写法。
     """
-    return _CMD_SLASH.sub("", text or "")
+    names = command_names or DEFAULT_COMMAND_ALIASES
+    body = "|".join(re.escape(name) for name in names if name)
+    if not body:
+        return text or ""
+    pattern = re.compile(rf"[/／](?=(?:{body})(?=[\s\u3000·、，。！？)）]|$))")
+    return pattern.sub("", text or "")
 
 
 def render(template: str, **values: object) -> str:

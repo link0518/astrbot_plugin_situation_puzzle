@@ -382,6 +382,66 @@ def test_reveal_is_locked_at_start(tmp_path):
     asyncio.run(scenario())
 
 
+def test_custom_commands_take_effect_after_save(tmp_path):
+    import asyncio
+
+    async def scenario():
+        plugin, _ = await build_plugin(tmp_path)
+        try:
+            errors = plugin.update_config(
+                {
+                    "basic": {
+                        "command_names": "线索",
+                        "sub_commands": {"hint": "给点提示"},
+                    }
+                }
+            )
+            assert errors == []
+
+            opened = await collect(plugin.on_message(FakeEvent("/线索 开")))
+            assert plugin.rooms.get("test:GroupMessage:1") is not None
+            # 开局文案里的操作提示也跟着换词
+            assert any("/线索 给点提示" in text for text in opened)
+
+            hint = await collect(plugin.on_message(FakeEvent("/线索 给点提示")))
+            assert hint and "提示" in hint[0]
+
+            help_replies = await collect(plugin.on_message(FakeEvent("/线索 帮助")))
+            assert "/线索 给点提示" in help_replies[0]
+            assert "/线索 ·" in help_replies[0] or help_replies[0].startswith(
+                "【Jev 海龟汤】\n/线索"
+            )
+
+            # 旧写法整体失效：不响应，也不误当成开局
+            old = FakeEvent("/汤 提示")
+            assert await collect(plugin.on_message(old)) == []
+            assert old.stopped is False
+        finally:
+            await plugin.terminate()
+
+    asyncio.run(scenario())
+
+
+def test_unknown_subcommand_shows_help_instead_of_restart(tmp_path):
+    import asyncio
+
+    async def scenario():
+        plugin, _ = await build_plugin(tmp_path)
+        try:
+            await collect(plugin.tang_command(FakeEvent("/汤")))
+            room = plugin.rooms.get("test:GroupMessage:1")
+            assert room is not None
+
+            replies = await collect(plugin.on_message(FakeEvent("/汤 提示我一下")))
+            assert replies and "【Jev 海龟汤】" in replies[0]
+            # 原对局没有被重开
+            assert plugin.rooms.get("test:GroupMessage:1") is room
+        finally:
+            await plugin.terminate()
+
+    asyncio.run(scenario())
+
+
 def test_config_update_rebuilds_engine(tmp_path):
     import asyncio
 
@@ -430,6 +490,20 @@ def test_settings_and_library_api(tmp_path):
             rejected = await plugin.api.save_settings()
             assert rejected["saved"] is False
             assert plugin.config.threshold == pytest.approx(0.66)
+
+            # 面板提交的指令映射是嵌套结构，落盘后仍应是 dict 而不是点分键
+            request.payload = {
+                "basic": {
+                    "command_names": "海龟汤",
+                    "sub_commands": {"hint": "线索", "skip": ""},
+                }
+            }
+            mapped = await plugin.api.save_settings()
+            assert mapped["saved"] is True
+            assert plugin.config.command_names == ("海龟汤",)
+            assert plugin.config.subcommands["hint"] == ("线索",)
+            assert plugin.config.subcommands["skip"] == ()
+            assert isinstance(mapped["values"]["basic"]["sub_commands"], dict)
 
             request.payload = {}
             request.query.params = {"page": "1", "size": "5"}

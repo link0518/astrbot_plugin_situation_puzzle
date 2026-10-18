@@ -31,6 +31,9 @@
 指令写法可在面板里改（`command_style`）：`both` 默认，`/汤` 与 `汤` 都认；`slash` 只认 `/汤`；
 `text` 只认 `汤`。选 `text` 时，机器人发出的文案也会把「/汤 提示」写成「汤 提示」。
 
+主指令和每个子指令的词都能换，见下文「指令映射」：把「汤」改成「线索」、「提示」改成「给点线索」后，
+`/线索 给点线索` 直接生效，帮助与开局文案也会自动跟着换。
+
 ### 提问的三条通道
 
 1. **@bot** —— `@机器人 她是自杀吗？`
@@ -88,6 +91,30 @@ git clone https://github.com/link0518/astrbot_plugin_situation_puzzle.git
 |---|---|
 | ![题库页](docs/screenshots/library.png) | ![运行状态](docs/screenshots/dashboard.png) |
 
+#### 指令映射
+
+面板「基础设置 → 指令映射」里，主指令和每个子指令的词都能换，逗号分隔：
+
+| 项 | 默认写法 |
+|---|---|
+| 主指令 | `汤,海龟汤,turtle,sp` |
+| 开局 | `开,开局,开始,新,新局,start` |
+| 提示 | `提示,线索,hint,h` |
+| 作答 | `答,作答,解,solve` |
+| 揭晓 | `揭晓,看答案,答案,reveal` |
+| 跳过 | `跳过,换题,换,skip` |
+| 状态 | `状态,进度,status,info` |
+| 排行 | `排行,排名,排行榜,rank` |
+| 题库 | `题库,统计,stats` |
+| 帮助 | `帮助,玩法,菜单,help,?` |
+
+规则：
+
+- **跨组重名会被拒绝**：保存时提示「同时映射到 A 和 B」，整批改动都不生效，不会只改一半。
+- **匹配取最长的词**：`答` 在作答、`答案` 在揭晓，`/汤 答案` 走揭晓，不会被拆成「答 + 案」。
+- **清空即禁用**：清空「揭晓」后 `/汤 揭晓` 不再响应；主指令至少要保留一个写法。
+- 保存即生效，进行中的对局不受影响；帮助文案与开局提示里的示例会自动换成新词。
+
 ---
 
 ## 判题引擎
@@ -140,7 +167,7 @@ git clone https://github.com/link0518/astrbot_plugin_situation_puzzle.git
 
 ```bash
 python -m pip install -r requirements.txt pytest ruff
-python -m pytest tests -q      # 65 个用例：协议、提示词、路由、房间、防剧透、端到端、面板接口
+python -m pytest tests -q      # 81 个用例：协议、提示词、路由、指令映射、房间、防剧透、端到端、面板接口
 python -m ruff check .
 python -m ruff format --check .
 ```

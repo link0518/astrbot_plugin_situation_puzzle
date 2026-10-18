@@ -19,15 +19,21 @@ def flatten(node, prefix=""):
     return flat
 
 
+def iter_defs(items, prefix=""):
+    """递归展开 schema 的 items，嵌套 object 也能取到叶子定义。"""
+    for key, definition in items.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if definition.get("type") == "object" and isinstance(
+            definition.get("items"), dict
+        ):
+            yield from iter_defs(definition["items"], path)
+        else:
+            yield path, definition
+
+
 def schema_defaults():
     schema = json.loads((ROOT / "_conf_schema.json").read_text(encoding="utf-8"))
-    flat = {}
-    for key, node in schema.items():
-        if node.get("type") == "object":
-            for sub, definition in node["items"].items():
-                flat[f"{key}.{sub}"] = definition.get("default")
-        else:
-            flat[key] = node.get("default")
+    flat = {path: definition.get("default") for path, definition in iter_defs(schema)}
     return schema, flat
 
 
@@ -45,23 +51,17 @@ def test_schema_default_values_match_defaults():
 def test_schema_types_match_python_types():
     schema, _ = schema_defaults()
     expected = {bool: "bool", int: "int", float: "float", str: "string"}
-    for key, node in schema.items():
-        if node.get("type") != "object":
+    for path, definition in iter_defs(schema):
+        default = definition.get("default")
+        declared = definition.get("type")
+        if declared == "text":
+            assert isinstance(default, str), path
             continue
-        for sub, definition in node["items"].items():
-            default = definition.get("default")
-            declared = definition.get("type")
-            if declared == "text":
-                assert isinstance(default, str), f"{key}.{sub}"
-                continue
-            assert expected[type(default)] == declared, f"{key}.{sub}"
+        assert expected[type(default)] == declared, path
 
 
 def test_enum_options_cover_defaults():
     schema, _ = schema_defaults()
-    for key, node in schema.items():
-        if node.get("type") != "object":
-            continue
-        for sub, definition in node["items"].items():
-            if "options" in definition:
-                assert definition["default"] in definition["options"], f"{key}.{sub}"
+    for path, definition in iter_defs(schema):
+        if "options" in definition:
+            assert definition["default"] in definition["options"], path

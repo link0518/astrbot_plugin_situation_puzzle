@@ -608,21 +608,28 @@ raise last_error                                                  # 调用方回
 | 题库 | 完成 | 350 题内置（对齐上游 main 分支），首次启动幂等入库（`kv.seed_version`） |
 | 判题引擎 | 完成 | `jev`（默认，自定义 base_url/api_key/model）+ `provider`（可选，支持采样投票）+ 统一重试与错误分类 |
 | 房间与路由 | 完成 | 每会话一局、串行锁、排队上限、冷却、日限、闲置回收、三通道触发 |
-| 指令 | 完成 | 开局/答/提示/揭晓/跳过/状态/排行/题库/帮助，别名 4 个 |
+| 指令 | 完成 | 开局/答/提示/揭晓/跳过/状态/排行/题库/帮助；主指令与子指令均可换词 |
 | 内容安全 | 完成 | 模板不泄露汤底；`tests/test_noleak.py` 断言；开局 30 秒锁揭晓 |
 | 面板后端 | 完成 | 15 个 Web API（配置、试判、校准、题库增删改查/导入导出/同步/体检、统计、房间、日志、SSE） |
 | 面板前端 | 完成 | `views/settings`、`views/library`、`views/dashboard`，亮暗主题 + 中英文案 |
-| 测试 | 完成 | 58 个用例（协议/提示词/路由/房间/存储/防剧透/schema 一致性/端到端/面板接口） |
+| 测试 | 完成 | 81 个用例（协议/提示词/路由/指令映射/房间/存储/防剧透/schema 一致性/端到端/面板接口） |
 | 质量 | 完成 | `ruff check` 与 `ruff format --check` 全绿 |
 
 验证结果：
 
 ```
-pytest tests -q          → 58 passed
+pytest tests -q          → 81 passed
 ruff check .             → All checks passed
-ruff format --check .    → 30 files already formatted
+ruff format --check .    → 32 files already formatted
 node --check views/*/app.js → 三个视图脚本语法通过
 ```
+
+2026-10-19 追加：
+
+- `basic.command_style`：`both` / `slash` / `text`，指令写法可选斜杠或纯文字。
+- `basic.command_names` + `basic.sub_commands`：指令映射。主指令与 9 个子指令都能换词，
+  设置页可视化编辑（逗号分隔、实时预览、恢复默认）；帮助与开局文案按当前映射生成；
+  跨组重名、非法字符、空主指令在保存时整批拒绝。
 
 尚未完成，需要真实环境：
 
@@ -630,5 +637,5 @@ node --check views/*/app.js → 三个视图脚本语法通过
 - jev 真实 Key 下的判题质量回归：用 20 条标准问题人工抽检一致率是否 ≥ 90%
 - 插件市场上架与官网文档页
 
-预览方式（无 AstrBot 时）：`preview/` 是桩件预览，`python -m http.server 5173` 后访问
-`http://127.0.0.1:5173/preview/index.html?view=settings|library|dashboard`。
+预览方式（无 AstrBot 时）：`dev/preview/` 是桩件预览，`python -m http.server 5173` 后访问
+`http://127.0.0.1:5173/dev/preview/index.html?view=settings|library|dashboard`。

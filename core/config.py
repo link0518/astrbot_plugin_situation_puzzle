@@ -5,6 +5,13 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from .router import (
+    DEFAULT_COMMAND_ALIASES,
+    DEFAULT_SUBCOMMANDS,
+    normalize_subcommands,
+    parse_aliases,
+)
+
 DEFAULTS: dict[str, Any] = {
     "enabled": True,
     "basic": {
@@ -13,6 +20,10 @@ DEFAULTS: dict[str, Any] = {
         "room_scope": "group",
         "keyword_prefix": "海龟",
         "command_style": "both",
+        "command_names": ",".join(DEFAULT_COMMAND_ALIASES),
+        "sub_commands": {
+            key: ",".join(aliases) for key, aliases in DEFAULT_SUBCOMMANDS.items()
+        },
         "default_difficulty": "random",
         "allow_group": True,
         "allow_private": True,
@@ -46,7 +57,7 @@ DEFAULTS: dict[str, Any] = {
         "max_chars": 1500,
         "tpl_start": (
             "【{title}】\n{story}\n\n我是{host}，这碗汤的主持人。@我提问，我只回答 是 / 否 / 无关。\n"
-            "/汤 提示 · /汤 答 <推理> · /汤 揭晓"
+            "{quick}"
         ),
         "tpl_verdict": "「{question}」→ {verdict}",
         "tpl_uncertain": "这个问题我得再看看（无法确定）",
@@ -105,6 +116,50 @@ def _deep_merge(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _set_path(node: dict[str, Any], path: str, value: Any) -> None:
+    """按点分路径写入，sub_commands.<key> 这类两级键不会被压成字面键名。"""
+    parts = path.split(".")
+    for part in parts[:-1]:
+        child = node.get(part)
+        if not isinstance(child, dict):
+            child = {}
+            node[part] = child
+        node = child
+    node[parts[-1]] = value
+
+
+_BAD_ALIAS = ("/", "／", "{", "}", "\n", "\r")
+
+
+def _validate_commands(raw: dict[str, Any], pending: dict[str, Any]) -> list[str]:
+    """校验主指令与子指令映射：不能为空、不能有非法字符、不能跨组重名。"""
+    errors: list[str] = []
+    flat = {**_flatten(raw), **pending}
+
+    names = parse_aliases(flat.get("basic.command_names", ""))
+    if not names:
+        errors.append("basic.command_names 至少要保留一个主指令写法")
+    for alias in names:
+        if len(alias) > 20:
+            errors.append(f"主指令「{alias}」过长（最多 20 个字符）")
+        if any(bad in alias for bad in _BAD_ALIAS):
+            errors.append(f"主指令「{alias}」不能包含斜杠、花括号或换行")
+
+    owners: dict[str, str] = {}
+    for key in DEFAULT_SUBCOMMANDS:
+        aliases = parse_aliases(flat.get(f"basic.sub_commands.{key}", ""))
+        for alias in aliases:
+            if len(alias) > 20:
+                errors.append(f"子指令「{alias}」过长（最多 20 个字符）")
+            if any(bad in alias for bad in _BAD_ALIAS):
+                errors.append(f"子指令「{alias}」不能包含斜杠、花括号或换行")
+            owner = owners.get(alias.lower())
+            if owner is not None and owner != key:
+                errors.append(f"「{alias}」同时映射到 {owner} 和 {key}，请只保留一处")
+            owners[alias.lower()] = key
+    return errors
+
+
 class PluginConfig:
     """AstrBotConfig 的只读视图 + 面板写入校验。"""
 
@@ -148,6 +203,15 @@ class PluginConfig:
     def command_style(self) -> str:
         style = str(self.get("basic.command_style", "both"))
         return style if style in ("both", "slash", "text") else "both"
+
+    @property
+    def command_names(self) -> tuple[str, ...]:
+        names = parse_aliases(self.get("basic.command_names", ""))
+        return names or DEFAULT_COMMAND_ALIASES
+
+    @property
+    def subcommands(self) -> dict[str, tuple[str, ...]]:
+        return normalize_subcommands(self.get("basic.sub_commands", {}))
 
     @property
     def engine(self) -> str:
@@ -258,12 +322,13 @@ class PluginConfig:
                     continue
             pending[path] = coerced
 
+        if not errors:
+            errors.extend(_validate_commands(self.raw, pending))
         if errors:
             return errors
 
         for path, value in pending.items():
-            section, key = path.split(".", 1)
-            self.raw.setdefault(section, {})[key] = value
+            _set_path(self.raw, path, value)
         return []
 
 
