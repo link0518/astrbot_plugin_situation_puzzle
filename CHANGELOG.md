@@ -3,6 +3,14 @@
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 新增
+
+- 配置项 `basic.command_style`：`both`（默认，斜杠与文字都认）、`slash`（仅 `/汤`）、
+  `text`（仅 `汤`）。文字模式下斜杠写法不再触发，出站文案同步去掉斜杠。
+- 文字写法改由消息 handler 直接执行，不再依赖框架的唤醒前缀；两种写法都可用时也不会互相吞消息。
+
 ## [0.1.0] - 2026-10-19
 
 首个版本，从一个空仓库到可玩。

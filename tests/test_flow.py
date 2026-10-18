@@ -300,6 +300,51 @@ def test_plain_chat_is_not_answered(tmp_path):
     asyncio.run(scenario())
 
 
+def test_text_command_style(tmp_path):
+    import asyncio
+
+    async def scenario():
+        plugin, _ = await build_plugin(tmp_path, {"basic": {"command_style": "text"}})
+        try:
+            event = FakeEvent("汤 开")
+            replies = await collect(plugin.on_message(event))
+            assert replies, "文字指令应由消息 handler 接管"
+            assert plugin.rooms.get(event.unified_msg_origin) is not None
+
+            # 文字模式下斜杠写法不生效，也不吞掉消息
+            slash = FakeEvent("/汤 状态")
+            assert await collect(plugin.on_message(slash)) == []
+            assert slash.stopped is False
+            assert await collect(plugin.tang_command(FakeEvent("/汤 状态"))) == []
+
+            # 文案里的指令也跟着去掉斜杠
+            status = await collect(plugin.on_message(FakeEvent("汤 状态")))
+            assert status and all("/汤" not in text for text in status)
+        finally:
+            await plugin.terminate()
+
+    asyncio.run(scenario())
+
+
+def test_slash_command_style(tmp_path):
+    import asyncio
+
+    async def scenario():
+        plugin, _ = await build_plugin(tmp_path, {"basic": {"command_style": "slash"}})
+        try:
+            await collect(plugin.tang_command(FakeEvent("/汤 开")))
+            assert plugin.rooms.get("test:GroupMessage:1") is not None
+
+            # 斜杠模式下纯文字指令不响应
+            bare = FakeEvent("汤 状态")
+            assert await collect(plugin.on_message(bare)) == []
+            assert bare.stopped is False
+        finally:
+            await plugin.terminate()
+
+    asyncio.run(scenario())
+
+
 def test_uncertain_is_not_guessed(tmp_path):
     import asyncio
 

@@ -12,6 +12,7 @@ DEFAULTS: dict[str, Any] = {
         "language": "zh",
         "room_scope": "group",
         "keyword_prefix": "海龟",
+        "command_style": "both",
         "default_difficulty": "random",
         "allow_group": True,
         "allow_private": True,
@@ -60,6 +61,7 @@ DEFAULTS: dict[str, Any] = {
 ENUMS = {
     "basic.language": ("zh", "en"),
     "basic.room_scope": ("group", "user"),
+    "basic.command_style": ("both", "slash", "text"),
     "basic.default_difficulty": ("random", "easy", "medium", "hard"),
     "judge.engine": ("jev", "provider"),
     "game.reveal_policy": ("all", "admin"),
@@ -141,6 +143,11 @@ class PluginConfig:
     @property
     def default_difficulty(self) -> str:
         return str(self.get("basic.default_difficulty", "random"))
+
+    @property
+    def command_style(self) -> str:
+        style = str(self.get("basic.command_style", "both"))
+        return style if style in ("both", "slash", "text") else "both"
 
     @property
     def engine(self) -> str:

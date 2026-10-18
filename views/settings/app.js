@@ -14,6 +14,9 @@ const OPTION_LABELS = {
   hard: "困难",
   all: "所有人",
   admin: "仅管理员",
+  both: "两种都认（/汤 · 汤）",
+  slash: "仅斜杠（/汤 提示）",
+  text: "仅文字（汤 提示）",
 };
 
 const state = { schema: {}, values: {}, meta: {}, loaded: false };

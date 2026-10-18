@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 COMMAND_ALIASES = ("海龟汤", "turtle", "sp", "汤")
+COMMAND_STYLES = ("both", "slash", "text")
 _LEADING = re.compile(r"^[/／]\s*")
 
 
@@ -28,8 +29,17 @@ class Decision:
     argument: str = ""
 
 
-def _match_command(text: str) -> tuple[str, str] | None:
-    """识别「汤 / 海龟汤 / turtle / sp」，允许不带斜杠但要求后接空格或结束。"""
+def _match_command(text: str, style: str = "both") -> tuple[str, str] | None:
+    """识别「汤 / 海龟汤 / turtle / sp」。
+
+    style 决定斜杠要求：both 两种都认，slash 必须带斜杠，text 不允许带斜杠。
+    别名之后必须接空格或结束，避免把「汤底是什么」当成指令。
+    """
+    has_slash = bool(_LEADING.match(text))
+    if style == "slash" and not has_slash:
+        return None
+    if style == "text" and has_slash:
+        return None
     body = _LEADING.sub("", text).strip()
     for alias in COMMAND_ALIASES:
         if body == alias:
@@ -46,13 +56,14 @@ def classify(
     at_bot: bool = False,
     reply_bot: bool = False,
     prefix: str = "海龟",
+    command_style: str = "both",
 ) -> Decision:
     """按 指令 > 回复bot > @bot > 关键词前缀 的优先级判定。"""
     raw = (text or "").strip()
     if not raw:
         return Decision(Action.IGNORE)
 
-    command = _match_command(raw)
+    command = _match_command(raw, command_style)
     if command:
         _, argument = command
         subcommand = argument.split(maxsplit=1)[0] if argument else ""

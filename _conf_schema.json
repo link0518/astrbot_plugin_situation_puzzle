@@ -33,6 +33,17 @@
         "default": "海龟",
         "hint": "发送「海龟 你的问题」即可提问，前缀与问题之间需要空格"
       },
+      "command_style": {
+        "type": "string",
+        "description": "指令写法",
+        "default": "both",
+        "options": [
+          "both",
+          "slash",
+          "text"
+        ],
+        "hint": "both：/汤 与 汤 都认；slash：仅 /汤 开、/汤 提示；text：仅 汤 开、汤 提示（不带斜杠）"
+      },
       "default_difficulty": {
         "type": "string",
         "description": "默认难度",

@@ -20,10 +20,10 @@ from astrbot.api.star import Context, Star
 
 from .core.config import PluginConfig
 from .core.room import Room, RoomManager
-from .core.router import Action, classify
+from .core.router import Action, Decision, classify
 from .core.stats import EventLog, percent
 from .core.store import PuzzleStore
-from .core.templates import render, split_message
+from .core.templates import render, split_message, strip_command_slash
 from .judge import JudgeError
 from .judge.factory import build_engine
 from .judge.prompts import AskInput, RecentQa, SolveInput
@@ -174,14 +174,25 @@ class SituationPuzzlePlugin(Star):
     @filter.command("汤", alias={"海龟汤", "turtle", "sp"})
     async def tang_command(self, event: AstrMessageEvent) -> AsyncGenerator[Any, None]:
         await self._ensure_ready()
-        if not self.config.enabled:
+        # 文字指令模式下不接管斜杠写法，交给下面的消息 handler 判断
+        if not self.config.enabled or self.config.command_style == "text":
             return
 
         decision = classify(
             event.message_str,
             has_room=self.rooms.get(event.unified_msg_origin) is not None,
             prefix=self.config.keyword_prefix,
+            command_style=self.config.command_style,
         )
+        if decision.action is not Action.COMMAND:
+            return
+        event.stop_event()
+        async for item in self._run_command(event, decision):
+            yield item
+
+    async def _run_command(
+        self, event: AstrMessageEvent, decision: Decision
+    ) -> AsyncGenerator[Any, None]:
         argument = decision.argument or ""
         subcommand = decision.subcommand.lower()
         rest = self._split_argument(argument, decision.subcommand)
@@ -247,11 +258,16 @@ class SituationPuzzlePlugin(Star):
             at_bot=at_bot,
             reply_bot=reply_bot,
             prefix=self.config.keyword_prefix,
+            command_style=self.config.command_style,
         )
-        if decision.action in (Action.IGNORE, Action.COMMAND):
+        if decision.action is Action.IGNORE:
             return
 
         event.stop_event()
+        if decision.action is Action.COMMAND:
+            async for item in self._run_command(event, decision):
+                yield item
+            return
         if decision.action is Action.START_QUESTION:
             texts = await self._start_game(event, first_question=decision.text)
             async for item in self._emit(event, texts):
@@ -593,7 +609,10 @@ class SituationPuzzlePlugin(Star):
     async def _emit(
         self, event: AstrMessageEvent, texts: list[str]
     ) -> AsyncGenerator[Any, None]:
+        text_mode = self.config.command_style == "text"
         for text in texts:
+            if text_mode:
+                text = strip_command_slash(text)
             for chunk in split_message(text, self.config.max_chars):
                 yield event.plain_result(chunk)
 

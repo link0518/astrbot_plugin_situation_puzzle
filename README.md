@@ -28,6 +28,9 @@
 
 别名：`海龟汤` / `turtle` / `sp`。
 
+指令写法可在面板里改（`command_style`）：`both` 默认，`/汤` 与 `汤` 都认；`slash` 只认 `/汤`；
+`text` 只认 `汤`。选 `text` 时，机器人发出的文案也会把「/汤 提示」写成「汤 提示」。
+
 ### 提问的三条通道
 
 1. **@bot** —— `@机器人 她是自杀吗？`
@@ -137,7 +140,7 @@ git clone https://github.com/link0518/astrbot_plugin_situation_puzzle.git
 
 ```bash
 python -m pip install -r requirements.txt pytest ruff
-python -m pytest tests -q      # 58 个用例：协议、提示词、路由、房间、防剧透、端到端、面板接口
+python -m pytest tests -q      # 65 个用例：协议、提示词、路由、房间、防剧透、端到端、面板接口
 python -m ruff check .
 python -m ruff format --check .
 ```
