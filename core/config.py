@@ -70,10 +70,7 @@ DEFAULTS: dict[str, Any] = {
     },
 }
 
-# 旧版本内置的第三方代理地址与模型名：升级后按原值精确匹配换回官方默认
-LEGACY_JEV_BASE_URLS = {
-    "https://ai-proxy.xiaobaozi.cn/opencode.ai/zen/v1/systemone",
-}
+# 旧版本用过的模型名：升级后按原值精确匹配换回新默认值
 LEGACY_JEV_MODELS = {"jev-1.13": "jev-1.13.0"}
 
 # 字段约束：取值枚举、数值区间
@@ -176,13 +173,11 @@ class PluginConfig:
         self._migrate_judge_defaults()
 
     def _migrate_judge_defaults(self) -> None:
-        """把旧版本留下的代理地址与模型名归位到官方默认值。
+        """把旧版本留下的模型名归位到新默认值。
 
-        只做精确匹配，玩家自己填的地址不会被覆盖。
+        只做精确匹配，玩家自己填的不会被覆盖。
         """
         judge = self.raw.setdefault("judge", {})
-        if str(judge.get("jev_base_url") or "") in LEGACY_JEV_BASE_URLS:
-            judge["jev_base_url"] = DEFAULTS["judge"]["jev_base_url"]
         model = str(judge.get("jev_model") or "")
         if model in LEGACY_JEV_MODELS:
             judge["jev_model"] = LEGACY_JEV_MODELS[model]

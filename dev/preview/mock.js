@@ -65,7 +65,7 @@ const rooms = [
     updated_at: Math.floor(Date.now() / 1000) - 12, idle_seconds: 12,
   },
   {
-    umo: "telegram:Group:-1002", room_id: "default", puzzle_id: "real-finish-line", title: "最后一班车",
+    umo: "telegram:Group:-1002", room_id: "default", puzzle_id: "real-five-seconds", title: "54321",
     state: "playing", rounds: 2, hints_used: 0, hint_total: 3, participants: 1,
     owner_id: "20002", started_at: Math.floor(Date.now() / 1000) - 180,
     updated_at: Math.floor(Date.now() / 1000) - 95, idle_seconds: 95,
@@ -95,10 +95,10 @@ const bridge = {
         meta: {
           plugin_name: "astrbot_plugin_situation_puzzle",
           puzzle_total: library.length,
-          difficulty: { easy: 120, medium: 210, hard: 116 },
+          difficulty: { easy: 130, medium: 194, hard: 26 },
           providers,
           default_provider: "deepseek-v3",
-          seed_version: "2026-10-19",
+          seed_version: "2026-10-19.1",
           engine: values.judge.engine,
         },
       };
