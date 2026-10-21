@@ -219,6 +219,33 @@ class PuzzleStore:
         rows = await self._query(sql, params)
         return self._row_to_puzzle(rows[0]) if rows else None
 
+    async def pick_puzzle(
+        self,
+        umo: str,
+        difficulty: str = "random",
+        fresh_first: bool = True,
+    ) -> Puzzle | None:
+        """按会话挑题；fresh_first 时优先本会话没开过的题。"""
+        if not fresh_first:
+            return await self.random_puzzle(difficulty)
+
+        sql = """
+            SELECT p.* FROM puzzles p
+            LEFT JOIN (
+                SELECT puzzle_id, COUNT(*) AS times FROM rooms
+                WHERE umo=? GROUP BY puzzle_id
+            ) c ON c.puzzle_id = p.id
+            WHERE p.enabled=1
+        """
+        params: list[Any] = [umo]
+        if difficulty in ("easy", "medium", "hard"):
+            sql += " AND p.difficulty=?"
+            params.append(difficulty)
+        # 没开过的题次数为 0，排在最前；全部玩过后按次数最少的一批轮转
+        sql += " ORDER BY COALESCE(c.times, 0) ASC, RANDOM() LIMIT 1"
+        rows = await self._query(sql, params)
+        return self._row_to_puzzle(rows[0]) if rows else None
+
     async def list_puzzles(
         self,
         page: int = 1,

@@ -317,7 +317,9 @@ class SituationPuzzlePlugin(Star):
 
         puzzle = await self.store.get_puzzle(puzzle_id) if puzzle_id else None
         if puzzle is None:
-            puzzle = await self.store.random_puzzle(difficulty)
+            puzzle = await self.store.pick_puzzle(
+                event.unified_msg_origin, difficulty, self.config.fresh_first
+            )
         if puzzle is None:
             if difficulty != "random":
                 puzzle = await self.store.random_puzzle("random")

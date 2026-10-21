@@ -70,6 +70,52 @@ def test_random_puzzle_respects_difficulty(tmp_path):
     assert asyncio.run(store.random_puzzle("easy")).id == "p-easy"
 
 
+def many_easy(count: int) -> list[dict]:
+    return [
+        {
+            "id": f"e{index}",
+            "title": f"样本{index}",
+            "category": "本格",
+            "difficulty": "easy",
+            "story": "汤面。",
+            "answer": "汤底。",
+            "hints": ["甲", "乙", "丙"],
+        }
+        for index in range(count)
+    ]
+
+
+def test_pick_puzzle_prefers_unplayed(tmp_path):
+    store = build_store(tmp_path, many_easy(3))
+    seen = []
+    for round_id in range(3):
+        puzzle = asyncio.run(store.pick_puzzle("umo", "easy"))
+        assert puzzle is not None
+        seen.append(puzzle.id)
+        asyncio.run(store.start_room("umo", f"r{round_id}", puzzle.id, "u1"))
+    assert sorted(seen) == ["e0", "e1", "e2"]
+
+
+def test_pick_puzzle_falls_back_to_least_played(tmp_path):
+    store = build_store(tmp_path, many_easy(2))
+    asyncio.run(store.start_room("umo", "r1", "e0", "u1"))
+    asyncio.run(store.start_room("umo", "r2", "e0", "u1"))
+    asyncio.run(store.start_room("umo", "r3", "e1", "u1"))
+    assert asyncio.run(store.pick_puzzle("umo", "easy")).id == "e1"
+
+
+def test_pick_puzzle_is_scoped_per_conversation(tmp_path):
+    store = build_store(tmp_path, many_easy(1))
+    asyncio.run(store.start_room("umo-a", "r1", "e0", "u1"))
+    assert asyncio.run(store.pick_puzzle("umo-b", "easy")).id == "e0"
+
+
+def test_pick_puzzle_can_turn_off_fresh_first(tmp_path):
+    store = build_store(tmp_path, many_easy(1))
+    asyncio.run(store.start_room("umo", "r1", "e0", "u1"))
+    assert asyncio.run(store.pick_puzzle("umo", "easy", False)).id == "e0"
+
+
 def test_list_and_search(tmp_path):
     store = build_store(tmp_path)
     page = asyncio.run(store.list_puzzles(keyword="赛车"))

@@ -278,6 +278,7 @@ AstrBot 把 schema 自动渲染成表单，分 5 组（`object` 嵌套即分组�
       "room_scope": { "type": "string", "description": "开房范围", "default": "group", "options": ["group", "user"] },
       "keyword_prefix": { "type": "string", "description": "关键词触发前缀", "default": "海龟", "hint": "发送「海龟 问题」即可提问，需带空格" },
       "default_difficulty": { "type": "string", "description": "默认难度", "default": "random", "options": ["random", "easy", "medium", "hard"] },
+      "fresh_first": { "type": "bool", "description": "优先抽取本群没开过的题目（全部玩过后按开过次数最少轮转）", "default": true },
       "allow_group": { "type": "bool", "description": "允许群聊开局", "default": true },
       "allow_private": { "type": "bool", "description": "允许私聊开局", "default": true }
     }

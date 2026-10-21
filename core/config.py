@@ -25,6 +25,7 @@ DEFAULTS: dict[str, Any] = {
             key: ",".join(aliases) for key, aliases in DEFAULT_SUBCOMMANDS.items()
         },
         "default_difficulty": "random",
+        "fresh_first": True,
         "allow_group": True,
         "allow_private": True,
     },
@@ -218,6 +219,10 @@ class PluginConfig:
     @property
     def default_difficulty(self) -> str:
         return str(self.get("basic.default_difficulty", "random"))
+
+    @property
+    def fresh_first(self) -> bool:
+        return bool(self.get("basic.fresh_first", True))
 
     @property
     def command_style(self) -> str:

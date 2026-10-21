@@ -108,6 +108,11 @@
         "default": "random",
         "options": ["random", "easy", "medium", "hard"]
       },
+      "fresh_first": {
+        "type": "bool",
+        "description": "优先抽取本群没开过的题目（全部玩过后按开过次数最少轮转）",
+        "default": true
+      },
       "allow_group": {
         "type": "bool",
         "description": "允许群聊开局",
